@@ -49,6 +49,8 @@ Here are the commands you can use:
   tags    Lists all tags in use and how many games have each.
   log     Logs that a game was played: log INDEX /players COUNT [/date YYYY-MM-DD]
   sort    Sorts your collection: sort title|players|time
+  unavailable  Marks a game unavailable: unavailable INDEX /reason missing|damaged
+  available    Marks a game available again: available INDEX
   help    Shows this list of commands.
   exit    Exits GameVault.
 ____________________________________________________________
@@ -424,6 +426,37 @@ Catan has now been played 2 times.
 ____________________________________________________________
 ```
 
+<!-- @@author KRAZYZECTRON -->
+### Marking a game unavailable: `unavailable`, `available`
+
+Marks a game you cannot play at the moment, for example because pieces are missing or it is damaged,
+so that `list` shows why. Mark it available again once it is back in play.
+
+Format: `unavailable INDEX /reason REASON` and `available INDEX`
+
+* `INDEX` is the game's number in `list`, and must be a whole number of at least 1.
+* `REASON` is `missing` (missing pieces) or `damaged`, in any case.
+* Marking a game that is already unavailable with a different reason replaces the old reason.
+* `edit` keeps a game's unavailable reason.
+* For games you have lent to someone, use `lend` instead, which also records who has the game.
+
+Examples of usage:
+
+* `unavailable 1 /reason missing` marks game 1 as having missing pieces.
+* `available 1` marks game 1 as available again.
+
+Expected output (for `unavailable 1 /reason damaged`, when game 1 was already marked as having missing pieces):
+
+```
+____________________________________________________________
+Marked unavailable: Catan (3-4 players, 60 min) - unavailable: damaged
+(Was: missing pieces.)
+Use 'available 1' once it can be played again.
+____________________________________________________________
+```
+
+`list` then shows the reason after the game, e.g. `1. Catan (3-4 players, 60 min) - unavailable: damaged`.
+
 <!-- @@author -->
 ### Exiting the program: `exit`
  
@@ -458,8 +491,10 @@ Love Letter | 2 | 4 | 20 |  | sessions=2026-10-25@3;2026-10-30@4
 * `TAGS`, if given, must be the fifth field. For a game with tags but no play time, leave `TIME` blank,
   as in the `Werewolf` line above. Each tag must follow the rules in [Tagging a game](#tagging-a-game-tag-untag).
 * Any further data comes after `TAGS` as named `KEY=VALUE` fields. For these lines, write `TIME` and `TAGS`
-  even if blank, as in the `Love Letter` line above. Currently the only named field is `sessions`, which lists
-  the logged play sessions as `DATE@PLAYERS` (e.g. `2026-10-30@4`), separated by `;`.
+  even if blank, as in the `Love Letter` line above. The named fields are:
+  * `sessions`, which lists the logged play sessions as `DATE@PLAYERS` (e.g. `2026-10-30@4`), separated by `;`.
+  * `unavailable`, which says why the game cannot be played at the moment: `missing` or `damaged`
+    (e.g. `unavailable=missing`).
 * Blank lines are ignored.
 
 If a line is not in this format, GameVault skips that line, loads the rest of your games, and tells you which
@@ -497,5 +532,7 @@ Untag | `untag INDEX TAG [MORE_TAGS]...`, e.g. `untag 2 co-op`
 List tags | `tags`
 Sort | `sort title`, `sort players` or `sort time`, e.g. `sort time`
 Log | `log INDEX /players COUNT [/date YYYY-MM-DD]`, e.g. `log 1 /players 4 /date 2026-10-30`
+Mark unavailable | `unavailable INDEX /reason missing\|damaged`, e.g. `unavailable 1 /reason missing`
+Mark available | `available INDEX`, e.g. `available 1`
 Help | `help`
 Exit | `exit`

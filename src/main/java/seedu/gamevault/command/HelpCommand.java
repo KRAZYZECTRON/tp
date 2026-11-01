@@ -29,6 +29,8 @@ public class HelpCommand extends Command {
               untag   Removes tags from a game: untag INDEX TAG [MORE_TAGS]...
               tags    Lists all tags in use and how many games have each.
               sort    Sorts your collection: sort title|players|time
+              unavailable  Marks a game unavailable: unavailable INDEX /reason missing|damaged
+              available    Marks a game available again: available INDEX
               help    Shows this list of commands.
               exit    Exits GameVault.""";
 

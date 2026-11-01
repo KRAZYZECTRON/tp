@@ -18,6 +18,8 @@ public class Game {
     public static final String SESSIONS_FILE_KEY = "sessions";
     /** Separates the sessions within the sessions field, e.g. {@code 2026-06-01@3;2026-10-30@4}. */
     public static final String SESSION_FILE_SEPARATOR = ";";
+    /** Name of the data-file field that says why a game is unavailable, e.g. {@code unavailable=missing}. */
+    public static final String UNAVAILABLE_FILE_KEY = "unavailable";
     /** Value of {@code playTime} for a game whose play time has not been recorded. */
     private static final int NO_PLAY_TIME = 0;
 
@@ -29,6 +31,8 @@ public class Game {
     private final int playTime;
     /** Normalised tags (see {@link Tag}); a TreeSet keeps them unique and in alphabetical order. */
     private final TreeSet<String> tags = new TreeSet<>();
+    /** Why the game cannot be played at the moment, or null while it is available. */
+    private UnavailableReason unavailableReason;
 
     /**
      * Creates a game with no play time recorded.
@@ -133,6 +137,39 @@ public class Game {
         return Collections.unmodifiableSet(tags);
     }
 
+    /**
+     * Returns whether the user marked this game unavailable, e.g. because pieces are missing.
+     */
+    public boolean isMarkedUnavailable() {
+        return unavailableReason != null;
+    }
+
+    /**
+     * Returns why this game is unavailable, or an empty Optional if it is not marked unavailable.
+     */
+    public Optional<UnavailableReason> getUnavailableReason() {
+        return Optional.ofNullable(unavailableReason);
+    }
+
+    /**
+     * Marks this game unavailable for the given reason, replacing any earlier reason.
+     *
+     * @param reason Why the game cannot be played at the moment.
+     */
+    public void markUnavailable(UnavailableReason reason) {
+        assert reason != null : "Reason should not be null; use markAvailable() to clear it";
+        unavailableReason = reason;
+    }
+
+    /**
+     * Marks this game available again. Callers must check {@link #isMarkedUnavailable()} first,
+     * so that the user can be told when the game was already available.
+     */
+    public void markAvailable() {
+        assert isMarkedUnavailable() : "Game should be marked unavailable before it is made available";
+        unavailableReason = null;
+    }
+
     //@@author yy261
     /**
      * Returns whether this game can be played by the given number of players,
@@ -192,12 +229,18 @@ public class Game {
             }
             fields.add(SESSIONS_FILE_KEY + "=" + String.join(SESSION_FILE_SEPARATOR, encoded));
         }
+        //@@author KRAZYZECTRON
+        if (isMarkedUnavailable()) {
+            fields.add(UNAVAILABLE_FILE_KEY + "=" + unavailableReason.getKeyword());
+        }
+        //@@author Xandurs
         return fields;
     }
 
     /**
      * Returns this game as it is shown to the user, e.g. {@code Catan (3-4 players, 60 min) [strategy]},
      * or {@code Chess (2 players)} when the minimum and maximum are the same and there is no play time or tag.
+     * An unavailable game ends with its reason, e.g. {@code Catan (3-4 players) - unavailable: missing pieces}.
      */
     @Override
     public String toString() {
@@ -206,7 +249,10 @@ public class Game {
                 : minPlayers + "-" + maxPlayers;
         String time = hasPlayTime() ? ", " + playTime + " min" : "";
         String tagList = tags.isEmpty() ? "" : " [" + String.join(", ", tags) + "]";
-        return title + " (" + players + " players" + time + ")" + tagList;
+        String availability = isMarkedUnavailable()
+                ? " - unavailable: " + unavailableReason.getDescription()
+                : "";
+        return title + " (" + players + " players" + time + ")" + tagList + availability;
     }
 
     //@@author Xandurs

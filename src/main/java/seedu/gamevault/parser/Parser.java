@@ -15,6 +15,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import seedu.gamevault.command.AddCommand;
+import seedu.gamevault.command.AvailableCommand;
 import seedu.gamevault.command.Command;
 import seedu.gamevault.command.DeleteCommand;
 import seedu.gamevault.command.EditCommand;
@@ -29,11 +30,13 @@ import seedu.gamevault.command.LogCommand;
 import seedu.gamevault.command.PickCommand;
 import seedu.gamevault.command.SortCommand;
 import seedu.gamevault.command.TagCommand;
+import seedu.gamevault.command.UnavailableCommand;
 import seedu.gamevault.command.UntagCommand;
 import seedu.gamevault.exception.GameVaultException;
 import seedu.gamevault.game.Game;
 import seedu.gamevault.game.SortOrder;
 import seedu.gamevault.game.Tag;
+import seedu.gamevault.game.UnavailableReason;
 
 /**
  * Turns a line typed by the user into the matching {@link Command}.
@@ -48,6 +51,7 @@ public class Parser {
     private static final String TAG_PREFIX = "/tag";
     private static final String PLAYERS_PREFIX = "/players";
     private static final String DATE_PREFIX = "/date";
+    private static final String REASON_PREFIX = "/reason";
     private static final String NO_TIME_VALUE = "none";
     /** Key under which {@link #splitByPrefixes} stores the text that comes before the first prefix. */
     private static final String PREAMBLE = "";
@@ -107,6 +111,10 @@ public class Parser {
             return parseSort(arguments);
         case LogCommand.COMMAND_WORD:
             return parseLog(arguments);
+        case UnavailableCommand.COMMAND_WORD:
+            return parseUnavailable(arguments);
+        case AvailableCommand.COMMAND_WORD:
+            return parseAvailable(arguments);
         default:
             throw new GameVaultException("Unknown command '" + parts[0]
                     + "'. Type 'help' to see all commands.");
@@ -534,6 +542,48 @@ public class Parser {
             throw new GameVaultException("TAG should be " + Tag.RULES + ", but was '" + text.trim() + "'.");
         }
         return tag;
+    }
+
+    /**
+     * Builds an {@link UnavailableCommand} from arguments in the form {@code INDEX /reason REASON},
+     * e.g. {@code 2 /reason missing}. REASON is one of the {@link UnavailableReason} keywords, in any case.
+     *
+     * @throws GameVaultException If INDEX or REASON is missing or invalid, or /reason is repeated.
+     */
+    private static Command parseUnavailable(String arguments) throws GameVaultException {
+        Map<String, String> fields = splitByPrefixes(arguments, REASON_PREFIX);
+        String indexText = fields.get(PREAMBLE);
+        if (indexText.isEmpty()) {
+            throw new GameVaultException("INDEX is missing. Format: " + UnavailableCommand.USAGE
+                    + " (e.g. unavailable 2 /reason missing)");
+        }
+        int displayNumber = parseIndex(indexText);
+
+        String reasonText = fields.getOrDefault(REASON_PREFIX, "");
+        if (reasonText.isEmpty()) {
+            throw new GameVaultException("Please say why with /reason " + UnavailableReason.describeKeywords()
+                    + ". Format: " + UnavailableCommand.USAGE);
+        }
+        Optional<UnavailableReason> reason = UnavailableReason.fromKeyword(reasonText);
+        if (reason.isEmpty()) {
+            throw new GameVaultException("REASON should be " + UnavailableReason.describeKeywords()
+                    + ", but was '" + reasonText + "'.");
+        }
+        return new UnavailableCommand(displayNumber, reason.get());
+    }
+
+    /**
+     * Builds an {@link AvailableCommand} from arguments in the form {@code INDEX}, e.g. {@code 2}.
+     *
+     * @throws GameVaultException If INDEX is missing, is not a whole number, or is less than 1.
+     */
+    private static Command parseAvailable(String arguments) throws GameVaultException {
+        String indexText = arguments.trim();
+        if (indexText.isEmpty()) {
+            throw new GameVaultException("INDEX is missing. Format: " + AvailableCommand.USAGE
+                    + " (e.g. available 2)");
+        }
+        return new AvailableCommand(parseIndex(indexText));
     }
 
     private static String parseTitle(String text, String usage) throws GameVaultException {
